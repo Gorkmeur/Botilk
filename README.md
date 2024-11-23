@@ -4,10 +4,14 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
+import os
 
-# Giriş bilgileri
-INSTAGRAM_USERNAME = "gorkmeur"
-INSTAGRAM_PASSWORD = "rootters"
+# Giriş bilgileri (Çevresel değişkenlerden alınması önerilir)
+INSTAGRAM_USERNAME = os.getenv('INSTAGRAM_USERNAME')
+INSTAGRAM_PASSWORD = os.getenv('INSTAGRAM_PASSWORD')
+
+if not INSTAGRAM_USERNAME or not INSTAGRAM_PASSWORD:
+    raise Exception("Lütfen INSTAGRAM_USERNAME ve INSTAGRAM_PASSWORD çevresel değişkenlerini ayarlayın.")
 
 # ChromeDriver ayarı
 driver_path = "/usr/lib/chromium-browser/chromedriver"
@@ -31,7 +35,7 @@ try:
     time.sleep(5)  # Giriş sonrası bekleme
 
     # Belirli bir hashtag sayfasına git
-    hashtag = "fitness"  # Buraya istediğiniz hashtag'i yazın
+    hashtag = "fitness"
     driver.get(f"https://www.instagram.com/explore/tags/{hashtag}/")
     time.sleep(5)
 
@@ -48,17 +52,30 @@ try:
 
     print(f"{len(post_links)} gönderi bulundu.")
 
-    # Her gönderiden kullanıcı profiline git ve mail topla
+    # Profillerde e-posta topla
     emails = set()
     for post in post_links:
         driver.get(post)
         time.sleep(random.uniform(2, 5))
 
-        # Gönderinin sahibi olan kullanıcı profiline git
         try:
             profile_link = driver.find_element(By.XPATH, "//a[contains(@href, '/')]").get_attribute("href")
             driver.get(profile_link)
             time.sleep(random.uniform(2, 5))
 
-            # Profilde e-posta adresini kontrol et
-            bio = driver.find_element(By.XPATH, "//div[contains(@class, '-vDIg
+            bio = driver.find_element(By.XPATH, "//div[contains(@class, '-vDIg')]").text
+            print("Bio:", bio)
+
+            if "@" in bio:
+                bio_lines = bio.split("\n")
+                for line in bio_lines:
+                    if "@" in line and "." in line:
+                        emails.add(line)
+        except Exception as e:
+            print(f"Hata: {e}")
+            continue
+
+    print(f"Toplanan e-postalar: {emails}")
+
+finally:
+    driver.quit()
